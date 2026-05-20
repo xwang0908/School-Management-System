@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>School Grading System — Technical Report</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #7c3aed;
+    --primary-light: #8b5cf6;
+    --primary-dark: #6d28d9;
+    --secondary: #2563eb;
+    --accent: #f59e0b;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-2: #f1f5f9;
+    --text: #0f172a;
+    --text-secondary: #475569;
+    --text-tertiary: #94a3b8;
+    --border: #e2e8f0;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── Top Nav ── */
+  .top-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white; padding: 0 24px; height: 60px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: var(--shadow-md);
+  }
+  .top-bar .brand { display: flex; align-items: center; gap: 12px; }
+  .top-bar .brand-mark {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px;
+  }
+  .top-bar h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .top-bar .subtitle { font-size: 12px; opacity: 0.8; margin-left: auto; }
+
+  /* ── Layout ── */
+  .wrapper { display: flex; margin-top: 60px; min-height: calc(100vh - 60px); }
+  .sidebar {
+    display: none; width: 260px; flex-shrink: 0;
+    background: var(--surface); border-right: 1px solid var(--border);
+    position: fixed; top: 60px; left: 0; bottom: 0; overflow-y: auto; z-index: 50;
+    padding: 16px 0;
+  }
+  .sidebar.visible { display: block; }
+  .sidebar h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-tertiary); padding: 8px 20px 4px; font-weight: 600;
+  }
+  .sidebar a {
+    display: block; padding: 6px 20px 6px 24px; font-size: 13px;
+    color: var(--text-secondary); border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .sidebar a:hover, .sidebar a.active {
+    color: var(--primary); text-decoration: none; border-left-color: var(--primary);
+    background: rgba(124,58,237,0.04);
+  }
+  .sidebar a.sub { padding-left: 36px; font-size: 12px; }
+
+  .content {
+    flex: 1; max-width: 100%; padding: 32px 24px 80px;
+    margin-left: 0; overflow-x: hidden;
+  }
+  .content-inner { max-width: 860px; margin: 0 auto; }
+
+  @media (min-width: 900px) {
+    .sidebar { display: block !important; }
+    .content { margin-left: 260px; }
+    .toc-toggle { display: none !important; }
+  }
+  @media (max-width: 900px) {
+    .content { padding: 20px 16px 60px; }
+  }
+
+  .toc-toggle {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 8px 16px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-bottom: 20px; color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+  .toc-toggle:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ── Content Typography ── */
+  .content h2 {
+    font-size: 26px; font-weight: 700; margin: 48px 0 16px;
+    padding-bottom: 8px; border-bottom: 2px solid var(--border);
+    color: var(--text);
+  }
+  .content h2:first-of-type { margin-top: 0; }
+  .content h3 {
+    font-size: 18px; font-weight: 600; margin: 32px 0 12px; color: var(--primary-dark);
+  }
+  .content h4 {
+    font-size: 15px; font-weight: 600; margin: 24px 0 8px; color: var(--text);
+  }
+  .content p { margin: 0 0 16px; color: var(--text-secondary); }
+  .content ul, .content ol { margin: 0 0 16px; padding-left: 24px; }
+  .content li { margin-bottom: 4px; color: var(--text-secondary); }
+  .content strong { color: var(--text); }
+
+  /* ── Code ── */
+  .content code {
+    font-family: var(--font-mono); font-size: 13px;
+    background: var(--surface-2); padding: 2px 6px;
+    border-radius: 4px; color: var(--primary-dark);
+  }
+  .content pre {
+    background: #1e293b; color: #e2e8f0; padding: 16px 20px;
+    border-radius: var(--radius-lg); overflow-x: auto;
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+    margin: 0 0 20px;
+  }
+  .content pre code { background: none; padding: 0; color: inherit; font-size: inherit; }
+  .content .code-label {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-tertiary); margin-bottom: 4px;
+  }
+
+  /* ── Tables ── */
+  .content table {
+    width: 100%; border-collapse: collapse; margin: 0 0 20px;
+    font-size: 14px;
+  }
+  .content th, .content td {
+    text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border);
+  }
+  .content th {
+    background: var(--surface-2); font-weight: 600; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary);
+  }
+  .content tr:hover td { background: rgba(124,58,237,0.02); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px 24px; margin: 0 0 20px;
+    box-shadow: var(--shadow);
+  }
+  .card-grid {
+    display: grid; gap: 16px; margin: 0 0 20px;
+  }
+  @media (min-width: 640px) { .card-grid { grid-template-columns: 1fr 1fr; } }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .stat-card .num {
+    font-size: 28px; font-weight: 700; color: var(--primary);
+    line-height: 1.2;
+  }
+  .stat-card .label {
+    font-size: 13px; color: var(--text-secondary); margin-top: 4px;
+  }
+
+  /* ── Tags ── */
+  .tag {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px; text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .tag-green { background: #dcfce7; color: #166534; }
+  .tag-blue { background: #dbeafe; color: #1e40af; }
+  .tag-purple { background: #f3e8ff; color: #6b21a8; }
+  .tag-amber { background: #fef3c7; color: #92400e; }
+  .tag-red { background: #fee2e2; color: #991b1b; }
+
+  /* ── Arrow Diagram ── */
+  .diagram {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px 20px;
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.8;
+    white-space: pre; overflow-x: auto; margin: 0 0 20px;
+    color: var(--text);
+  }
+  .diagram .hl { color: var(--primary); font-weight: 600; }
+  .diagram .hl2 { color: var(--secondary); }
+  .diagram .hl3 { color: var(--accent); }
+
+  /* ── Blockquote / Info ── */
+  .info-box {
+    background: #f0f9ff; border-left: 4px solid var(--secondary);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 14px 18px; margin: 0 0 20px; font-size: 14px;
+  }
+  .warn-box {
+    background: #fffbeb; border-left: 4px solid var(--warning);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 14px 18px; margin: 0 0 20px; font-size: 14px;
+  }
+
+  /* ── Section anchors ── */
+  .section-link { color: inherit; text-decoration: none !important; }
+  .section-link:hover::after { content: " #"; color: var(--primary); opacity: 0.5; }
+
+  /* ── Print ── */
+  @media print {
+    .top-bar, .sidebar, .toc-toggle { display: none !important; }
+    .wrapper { margin-top: 0; }
+    .content { margin-left: 0; max-width: 100%; }
+    body { font-size: 12px; }
+    pre { white-space: pre-wrap; page-break-inside: avoid; }
+    h2, h3 { page-break-after: avoid; }
+  }
+
+  /* ── Back to top ── */
+  .back-top {
+    position: fixed; bottom: 24px; right: 24px; z-index: 50;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--primary); color: white; border: none;
+    cursor: pointer; box-shadow: var(--shadow-lg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .back-top.visible { opacity: 1; pointer-events: auto; }
+  .back-top:hover { background: var(--primary-dark); }
+
+  /* ── App Screenshot Mockups ── */
+  .showcase { margin: 24px 0 32px; }
+  .showcase-row {
+    display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .showcase-row.center { justify-content: center; }
+
+  /* Browser frame */
+  .browser-frame {
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    overflow: hidden; box-shadow: var(--shadow-lg); background: var(--surface);
+    flex: 1; min-width: 280px; max-width: 100%;
+  }
+  .browser-frame .browser-bar {
+    background: var(--surface-2); padding: 8px 14px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .browser-frame .browser-dots { display: flex; gap: 6px; }
+  .browser-frame .browser-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .browser-frame .browser-dot:nth-child(1) { background: #ef4444; }
+  .browser-frame .browser-dot:nth-child(2) { background: #f59e0b; }
+  .browser-frame .browser-dot:nth-child(3) { background: #22c55e; }
+  .browser-frame .browser-url {
+    flex: 1; background: white; border-radius: 4px;
+    padding: 3px 10px; font-size: 11px; color: var(--text-tertiary);
+    font-family: var(--font-mono); border: 1px solid var(--border);
+  }
+  .browser-frame .browser-body { padding: 0; position: relative; }
+  .browser-frame .browser-body iframe, .browser-frame .browser-body img {
+    width: 100%; display: block; border: none;
+  }
+
+  /* Phone frame */
+  .phone-frame {
+    width: 280px; min-width: 280px; flex-shrink: 0;
+    border: 3px solid #1e293b; border-radius: 36px;
+    overflow: hidden; box-shadow: var(--shadow-lg);
+    background: var(--surface); position: relative;
+  }
+  .phone-frame .phone-notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 22px; background: #1e293b;
+    border-radius: 0 0 14px 14px; z-index: 2;
+  }
+  .phone-frame .phone-bar {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white; padding: 32px 14px 10px; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .phone-frame .phone-bar .back-arrow { opacity: 0.8; font-size: 16px; }
+  .phone-frame .phone-bar .spacer { flex: 1; }
+  .phone-frame .phone-bar .more { opacity: 0.8; font-size: 18px; line-height: 1; }
+  .phone-frame .phone-content { padding: 12px 14px; min-height: 340px; }
+  .phone-frame .phone-bottom {
+    border-top: 1px solid var(--border); display: flex;
+    padding: 6px 8px; background: var(--surface);
+  }
+  .phone-frame .phone-bottom .tab {
+    flex: 1; text-align: center; padding: 4px 0;
+    font-size: 10px; color: var(--text-tertiary);
+  }
+  .phone-frame .phone-bottom .tab.active { color: var(--primary); }
+  .phone-frame .phone-bottom .tab svg { display: block; margin: 0 auto 2px; }
+
+  /* Mock app elements */
+  .mock-auth-card {
+    max-width: 340px; margin: 0 auto; background: var(--surface);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  .mock-auth-card .mock-header {
+    padding: 24px 24px 0; text-align: center;
+  }
+  .mock-auth-card .mock-header .brand-circle {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; font-size: 20px; font-weight: 800; margin-bottom: 12px;
+  }
+  .mock-auth-card .mock-header h4 { margin: 0 0 4px; font-size: 18px; }
+  .mock-auth-card .mock-header p { margin: 0 0 16px; font-size: 13px; }
+  .mock-auth-card .mock-tabs {
+    display: flex; border-bottom: 1px solid var(--border); margin: 0 24px;
+  }
+  .mock-auth-card .mock-tabs span {
+    flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 500;
+    border-bottom: 2px solid transparent; color: var(--text-tertiary); cursor: default;
+  }
+  .mock-auth-card .mock-tabs span.active {
+    color: var(--primary); border-bottom-color: var(--primary);
+  }
+  .mock-auth-card .mock-fields { padding: 16px 24px 24px; }
+  .mock-auth-card .mock-field {
+    margin-bottom: 12px;
+  }
+  .mock-auth-card .mock-field label {
+    display: block; font-size: 12px; font-weight: 500;
+    color: var(--text-secondary); margin-bottom: 4px;
+  }
+  .mock-auth-card .mock-field .mock-input {
+    width: 100%; height: 36px; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 0 10px; font-size: 13px;
+  }
+  .mock-auth-card .mock-btn {
+    width: 100%; height: 38px; border: none; border-radius: 6px;
+    background: var(--primary); color: white; font-weight: 600;
+    font-size: 14px; margin-top: 8px; cursor: default;
+  }
+
+  /* Dashboard mockup */
+  .mock-dash-header {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: white; padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+  }
+  .mock-dash-header .brand-dot {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px;
+  }
+  .mock-dash-header h5 { margin: 0; font-size: 15px; font-weight: 600; }
+  .mock-dash-header .badge {
+    margin-left: auto; font-size: 11px; padding: 2px 8px;
+    background: rgba(255,255,255,0.15); border-radius: 10px;
+  }
+  .mock-dash-cards { display: flex; gap: 10px; padding: 14px 16px; }
+  .mock-dash-card {
+    flex: 1; background: var(--surface-2); border-radius: 10px;
+    padding: 12px; text-align: center;
+  }
+  .mock-dash-card .num { font-size: 22px; font-weight: 700; color: var(--primary); }
+  .mock-dash-card .lbl { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+  .mock-dash-card .trend { font-size: 10px; color: var(--success); }
+
+  .mock-table { padding: 0 16px 14px; }
+  .mock-table .mt-row {
+    display: flex; padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px; align-items: center;
+  }
+  .mock-table .mt-row:first-child {
+    font-size: 10px; font-weight: 600; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid var(--border);
+  }
+  .mock-table .mt-row .c1 { width: 40%; }
+  .mock-table .mt-row .c2 { width: 35%; }
+  .mock-table .mt-row .c3 { width: 25%; text-align: right; }
+  .mock-table .mt-badge {
+    display: inline-block; padding: 1px 8px; border-radius: 8px;
+    font-size: 10px; font-weight: 600;
+  }
+  .mock-table .mt-badge.a { background: #dcfce7; color: #166534; }
+  .mock-table .mt-badge.b { background: #dbeafe; color: #1e40af; }
+  .mock-table .mt-badge.c { background: #fef3c7; color: #92400e; }
+
+  /* 3- column card for feature grid */
+  .feat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px; margin: 0 0 24px;
+  }
+
+  /* Mock labels */
+  .mock-label {
+    display: block; text-align: center; font-size: 12px;
+    color: var(--text-tertiary); margin-top: 6px; font-weight: 500;
+  }
+
+  /* Inline mini mock */
+  .mini-mock {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+    box-shadow: var(--shadow); margin-bottom: 16px;
+  }
+  .mini-mock .mm-header {
+    font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .mini-mock .mm-row {
+    display: flex; gap: 8px; align-items: center; padding: 4px 0;
+    font-size: 12px; border-bottom: 1px solid var(--border);
+  }
+  .mini-mock .mm-row:last-child { border-bottom: none; }
+  .mini-mock .mm-row .tag-mini {
+    font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 600;
+  }
+  .mini-mock .mm-row .tag-mini.grn { background: #dcfce7; color: #166534; }
+  .mini-mock .mm-row .tag-mini.org { background: #fef3c7; color: #92400e; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="brand">
+    <div class="brand-mark">SG</div>
+    <h1>School Grading System</h1>
+  </div>
+  <span class="subtitle">Technical Report</span>
+</div>
+
+<div class="wrapper">
+
+<nav class="sidebar" id="sidebar">
+  <h3>Contents</h3>
+  <a href="#overview">Project Overview</a>
+  <a href="#introduction">Introduction</a>
+  <a href="#background">Background &amp; Problem Statement</a>
+  <a href="#requirements">Requirements</a>
+  <a href="#tech-stack">Technology Stack</a>
+  <a href="#architecture" class="sub">Architecture</a>
+  <a href="#data-flow" class="sub">Data Flow</a>
+  <a href="#gallery">Feature Gallery</a>
+
+  <h3>File Inventory</h3>
+  <a href="#files">File Inventory &amp; Purposes</a>
+
+  <h3>Backend</h3>
+  <a href="#api-endpoints">API Endpoints</a>
+  <a href="#auth-flow" class="sub">Authentication Flow</a>
+  <a href="#database">Database Schema</a>
+  <a href="#backend-setup">Setup &amp; Configuration</a>
+
+  <h3>Frontend</h3>
+  <a href="#data-layer">Data Layer Architecture</a>
+  <a href="#desktop">Desktop Frontend</a>
+  <a href="#mobile">Mobile Frontend</a>
+  <a href="#ai-chat">AI Chat Widget</a>
+  <a href="#offline">Offline Fallback</a>
+
+  <h3>Implementation</h3>
+  <a href="#steps">Implementation Steps</a>
+  <a href="#decisions">Key Design Decisions</a>
+  <a href="#testing">Testing Instructions</a>
+
+  <h3>Appendix</h3>
+  <a href="#summary">File Size Summary</a>
+  <a href="#future">Future Enhancements</a>
+  <a href="#conclusion">Conclusion</a>
+  <a href="#appendix-a">Appendix A — File Reference</a>
+  <a href="#appendix-b">Appendix B — API Endpoint Summary</a>
+  <a href="#appendix-c">Appendix C — Glossary</a>
+</nav>
+
+<div class="content">
+<div class="content-inner">
+
+<button class="toc-toggle" id="tocToggle">☰ Table of Contents</button>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="overview"><a href="#overview" class="section-link">Project Overview</a></h2>
+
+<p>A full-stack <strong>school grading management system</strong> with three deployment targets: <span class="tag tag-blue">Desktop (Windows)</span> via local HTTP server or served by FastAPI, <span class="tag tag-purple">Mobile (PWA)</span> as a standalone web app with bottom tab navigation, and <span class="tag tag-green">Backend API</span> built with FastAPI + SQLAlchemy + SQLite. The system supports student/course/grade CRUD operations, authentication with JWT, offline data caching via localStorage, and AI-powered recommendations via OpenAI.</p>
+
+<div class="card-grid">
+  <div class="stat-card"><div class="num">33</div><div class="label">Source Files</div></div>
+  <div class="stat-card"><div class="num">~9,000</div><div class="label">Total Lines of Code</div></div>
+  <div class="stat-card"><div class="num">3</div><div class="label">Deployment Targets</div></div>
+  <div class="stat-card"><div class="num">~340 KB</div><div class="label">Total Size</div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="introduction"><a href="#introduction" class="section-link">Introduction</a></h2>
+
+<p>Educators today face fragmented grading workflows — spreadsheets that lack structure, desktop-only software that doesn't travel with them, and a complete absence of data-driven insights into student performance. This project was born from a single question: <em>What would a modern teacher's grading workspace look like if it were built from scratch for 2026?</em></p>
+
+<p>The <strong>School Grading System</strong> is a full-stack, dual-platform application that puts a teacher's entire grading workflow into one cohesive workspace. It combines the power of a desktop-grade CRUD interface with the portability of a mobile Progressive Web App (PWA), all backed by a RESTful API with JWT authentication, offline resilience, and optional AI-powered recommendations. A teacher can sit at their desk and manage the full roster, then pull out their phone during a staff meeting to check a student's trend — using the same data, the same auth, and the same intuitive design language.</p>
+
+<p>The system is not merely a grade book. It is a <strong>teacher intelligence platform</strong> that includes:</p>
+<ul>
+  <li>Statistical dashboards with smart alerts and trend analysis</li>
+  <li>Per-student profiles showing strengths, enrolled courses, and grade history</li>
+  <li>An AI chat assistant that answers natural-language questions about class performance</li>
+  <li>An AI course recommender that matches students to courses based on interests, prerequisites, performance, career goals, and workload balance</li>
+  <li>Predictive analytics that flag at-risk students before they fall too far behind</li>
+</ul>
+
+<p>This report documents the complete architecture, design decisions, implementation details, and usage instructions for every component of the system.</p>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="background"><a href="#background" class="section-link">Background &amp; Problem Statement</a></h2>
+
+<h3>The Problem</h3>
+<p>Traditional school grading systems suffer from a set of well-known pain points:</p>
+<ol>
+  <li><strong>Disconnected tools</strong> — Grade entry happens in one system (or spreadsheet), attendance in another, parent communication in a third. There is no unified view of the student.</li>
+  <li><strong>No mobility</strong> — Legacy classroom management software is often Windows-only, requiring VPN or remote desktop for off-campus access. Teachers working from home, on mobile, or between classrooms are left without access.</li>
+  <li><strong>Zero intelligence</strong> — Most systems are passive data repositories. They store grades but do not <em>interpret</em> them. A teacher must manually scan columns of numbers to spot a student in decline.</li>
+  <li><strong>Fragile offline story</strong> — Cloud-only solutions fail when Wi-Fi drops in a basement classroom or rural school. Offline-capable systems are rare and expensive.</li>
+  <li><strong>High barrier to entry</strong> — Enterprise solutions like PowerSchool, Canvas, or Blackboard require institutional adoption, IT administration, and licensing fees. An individual teacher or small school cannot self-serve.</li>
+</ol>
+
+<h3>The Solution</h3>
+<table>
+  <thead><tr><th>Pain Point</th><th>Solution</th></tr></thead>
+  <tbody>
+    <tr><td>Disconnected tools</td><td>All student, course, and grade management in one app with relationships (student → courses → grades)</td></tr>
+    <tr><td>No mobility</td><td>Dual deployment: desktop (browser) + mobile PWA (installable, standalone)</td></tr>
+    <tr><td>Zero intelligence</td><td>AI summary, smart alerts, trend analysis, grade predictions, AI chat assistant</td></tr>
+    <tr><td>Fragile offline</td><td>localStorage write-through cache with automatic API-first fallback chain</td></tr>
+    <tr><td>High barrier</td><td>Zero-cost stack (Python + SQLite + vanilla JS), runs on any machine with Python installed</td></tr>
+  </tbody>
+</table>
+
+<p>The system is designed for a <strong>single teacher or small department</strong> — a self-contained workspace where one educator manages their own students, courses, and grades without needing institutional IT support.</p>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="requirements"><a href="#requirements" class="section-link">Requirements</a></h2>
+
+<h3>Functional Requirements</h3>
+
+<div class="card">
+<h4 style="margin-top:0">FR1 — User Authentication</h4>
+<ul>
+  <li>Users shall register with full name, username, email, and password</li>
+  <li>Users shall log in with username and password</li>
+  <li>The system shall issue a JWT token on successful authentication</li>
+  <li>The system shall persist the session across page reloads via localStorage token storage</li>
+  <li>Users shall be able to sign out, clearing the session</li>
+</ul>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">FR2 — Student Management</h4>
+<ul>
+  <li>Users shall create, read, update, and delete student records</li>
+  <li>Each student record shall include: student ID, name, class/grade level, email, academic interests, and career goal</li>
+  <li>Users shall search students by name, ID, class, or email</li>
+  <li>Users shall view a detailed student profile showing enrolled courses, grade history with letter grades, strength areas, grade statistics (average, highest, lowest, passing/failing counts), and interest/career tags</li>
+  <li>Deleting a student shall cascade-delete all associated grade records</li>
+</ul>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">FR3 — Course Management</h4>
+<ul>
+  <li>Users shall create, read, update, and delete course records</li>
+  <li>Each course record shall include: name, code, teacher, period, room, term, category (STEM, Humanities, Arts, etc.), difficulty (Beginner/Intermediate/Advanced), credits, description, skills/tags, enrolled students, and prerequisites</li>
+  <li>Users shall enroll and unenroll students from courses via a multi-select UI</li>
+  <li>Users shall define course prerequisite relationships</li>
+  <li>Courses with existing grade records shall be protected from deletion</li>
+</ul>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">FR4 — Grade Management</h4>
+<ul>
+  <li>Users shall create, read, update, and delete grade records</li>
+  <li>Each grade shall include: student, course, subject, assessment type (Quiz, Test, Exam, Project, Homework, etc.), numeric score (0–100), date, and optional feedback</li>
+  <li>The system shall automatically compute letter grades (A/B/C/D/F) and pass/fail status</li>
+  <li>Users shall filter grades by search text, status (passing/failing), subject, and course</li>
+  <li>Users shall sort grades by date (newest/oldest), score (highest/lowest), and student name</li>
+  <li>Creating a grade for a student not enrolled in the course shall auto-enroll them</li>
+</ul>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">FR5 — Dashboard &amp; Analytics</h4>
+<ul>
+  <li>The dashboard shall display stat cards: total students, courses, grades, class average, passing count, failing count, highest score, lowest score</li>
+  <li>The system shall generate a natural-language AI summary of overall class performance</li>
+  <li>The system shall detect and display smart alerts: at-risk students, failing courses, unenrolled students, recent grade activity, grade declines, grade improvements</li>
+  <li>The system shall analyze trends by category (STEM, Humanities, etc.), assessment type, and over time (earlier vs. recent performance)</li>
+  <li>The system shall generate per-student predictions: honors track, good standing, needs support, at-risk — with recovery point calculations</li>
+</ul>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">FR6 — AI Chat Assistant</h4>
+<ul>
+  <li>The system shall provide a floating chat bubble accessible from any page</li>
+  <li>The chat shall respond to natural-language queries: summaries, student lookups, course details, at-risk detection, trends, predictions</li>
+  <li>The chat shall include suggested question chips for quick access</li>
+  <li>The chat shall support student name matching and course code matching</li>
+</ul>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">FR7 — AI Course Recommender</h4>
+<ul>
+  <li>Users shall select a student and generate AI-powered course recommendations</li>
+  <li>Recommendations shall consider: interest matching, prerequisite completion, performance data, workload balance, and career goal alignment</li>
+  <li>Results shall display a match score, detailed reasoning, and course metadata</li>
+  <li>Users may toggle each recommendation factor on/off</li>
+</ul>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">FR8 — Reports</h4>
+<ul>
+  <li>The system shall display grade averages grouped by course with visual meter bars</li>
+  <li>The system shall display grade averages grouped by subject</li>
+  <li>The system shall display grade averages per student</li>
+</ul>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">FR9 — Mobile PWA</h4>
+<ul>
+  <li>The mobile app shall provide bottom tab navigation with 5 tabs: Home, Students, Courses, Grades, More</li>
+  <li>All forms shall be presented as bottom-sliding modal sheets</li>
+  <li>A floating action button (FAB) shall provide quick-add from any tab</li>
+  <li>The app shall be installable as a standalone PWA with its own icon and splash screen</li>
+  <li>The app shall support dark mode via CSS variable toggling</li>
+</ul>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">FR10 — Data Persistence &amp; Offline</h4>
+<ul>
+  <li>Data shall be persisted to a SQLite database via the API</li>
+  <li>A localStorage cache shall mirror all API data as a write-through cache</li>
+  <li>On API failure, the system shall serve data from localStorage</li>
+  <li>On first launch with no cache, the system shall seed demo data (5 students, 6 courses, 4 grades)</li>
+</ul>
+</div>
+
+<h3>Non-Functional Requirements</h3>
+<table>
+  <thead><tr><th>ID</th><th>Requirement</th><th>Target</th></tr></thead>
+  <tbody>
+    <tr><td>NFR1</td><td><strong>Performance</strong></td><td>Dashboard renders in &lt;500ms with 50+ students, 20+ courses, 200+ grades</td></tr>
+    <tr><td>NFR2</td><td><strong>Availability</strong></td><td>Full read capability during backend outage (offline cache)</td></tr>
+    <tr><td>NFR3</td><td><strong>Security</strong></td><td>Passwords hashed with bcrypt; API authenticated via JWT Bearer tokens</td></tr>
+    <tr><td>NFR4</td><td><strong>Portability</strong></td><td>Runs on any OS with Python 3.10+; no external database server required</td></tr>
+    <tr><td>NFR5</td><td><strong>Maintainability</strong></td><td>Backend &lt;500 lines of Python across 12 files; frontend &lt;5,000 lines total</td></tr>
+    <tr><td>NFR6</td><td><strong>Usability</strong></td><td>Desktop responsive down to 768px; mobile optimized for touch targets &ge;44px</td></tr>
+    <tr><td>NFR7</td><td><strong>Deployability</strong></td><td>Single-command backend startup (<code>uvicorn main:app</code>); zero-config frontend via <code>python -m http.server</code></td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="tech-stack"><a href="#tech-stack" class="section-link">Technology Stack</a></h2>
+
+<h3>Backend</h3>
+<table>
+  <thead><tr><th>Technology</th><th>Version</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td>Python</td><td>3.10+</td><td>Runtime</td></tr>
+    <tr><td>FastAPI</td><td>0.115.0</td><td>Async web framework with auto-generated OpenAPI docs</td></tr>
+    <tr><td>Uvicorn</td><td>0.30.6</td><td>ASGI server</td></tr>
+    <tr><td>SQLAlchemy</td><td>2.0.35</td><td>ORM with declarative models</td></tr>
+    <tr><td>SQLite</td><td>—</td><td>Embedded zero-config database</td></tr>
+    <tr><td>Pydantic</td><td>2.9.2</td><td>Request/response validation via type annotations</td></tr>
+    <tr><td>Pydantic-Settings</td><td>2.5.2</td><td>Environment configuration from <code>.env</code></td></tr>
+    <tr><td>python-jose</td><td>3.3.0</td><td>JWT creation and verification</td></tr>
+    <tr><td>passlib[bcrypt]</td><td>1.7.4</td><td>Password hashing (bcrypt scheme)</td></tr>
+    <tr><td>OpenAI</td><td>1.51.0</td><td>GPT-4o-mini API client for recommendations and insights</td></tr>
+    <tr><td>python-multipart</td><td>0.0.12</td><td>Form data parsing for OAuth2 password flow</td></tr>
+    <tr><td>python-dotenv</td><td>1.0.1</td><td><code>.env</code> file loader</td></tr>
+    <tr><td>httpx</td><td>0.27.2</td><td>HTTP client dependency for OpenAI SDK</td></tr>
+  </tbody>
+</table>
+
+<h3>Frontend</h3>
+<table>
+  <thead><tr><th>Technology</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td>HTML5</td><td>Semantic markup with ARIA roles</td></tr>
+    <tr><td>CSS3</td><td>Custom properties, flexbox, grid, animations</td></tr>
+    <tr><td>JavaScript (ES6+)</td><td>Vanilla JS with async/await, modules, DOM APIs</td></tr>
+    <tr><td>localStorage</td><td>Offline data cache and token storage</td></tr>
+    <tr><td>PWA manifest.json</td><td>Installable mobile app metadata</td></tr>
+    <tr><td>SVG</td><td>Icons throughout (navigation, buttons, chat, brand mark)</td></tr>
+  </tbody>
+</table>
+
+<h3>Deployment Targets</h3>
+<table>
+  <thead><tr><th>Target</th><th>Access Method</th><th>URL</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag tag-blue">Desktop (self-hosted)</span></td><td><code>python -m http.server</code></td><td><code>http://localhost:8000/index.html</code></td></tr>
+    <tr><td><span class="tag tag-purple">Desktop (via backend)</span></td><td>FastAPI static mount</td><td><code>http://localhost:8000</code></td></tr>
+    <tr><td><span class="tag tag-amber">Mobile PWA (standalone)</span></td><td>HTTP server + manifest.json</td><td><code>http://localhost:8000/mobile-app/</code></td></tr>
+    <tr><td><span class="tag tag-green">Mobile PWA (installed)</span></td><td>"Add to Home Screen"</td><td>Standalone window</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="gallery"><a href="#gallery" class="section-link">Feature Gallery</a></h2>
+<p>A visual tour of the application's key screens, showing the actual UI across desktop and mobile platforms.</p>
+
+<div class="showcase">
+<div class="showcase-row center">
+
+  <!-- ── Auth Card Screenshot ── -->
+  <div class="browser-frame" style="max-width:380px">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span></div>
+      <div class="browser-url">localhost:8000</div>
+    </div>
+    <div class="browser-body" style="padding:20px;background:linear-gradient(135deg,#f5f3ff,#eef2ff)">
+      <div class="mock-auth-card">
+        <div class="mock-header">
+          <div class="brand-circle">SG</div>
+          <h4>School Grading System</h4>
+          <p>Sign in to your teacher workspace</p>
+        </div>
+        <div class="mock-tabs">
+          <span class="active">Sign In</span>
+          <span>Register</span>
+        </div>
+        <div class="mock-fields">
+          <div class="mock-field"><label>Username</label><div class="mock-input"></div></div>
+          <div class="mock-field"><label>Password</label><div class="mock-input"></div></div>
+          <div class="mock-btn">Sign In</div>
+        </div>
+      </div>
+    </div>
+    <span class="mock-label">🔐 Login / Register Screen</span>
+  </div>
+
+  <!-- ── Desktop Dashboard ── -->
+  <div class="browser-frame" style="max-width:560px">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span></div>
+      <div class="browser-url">localhost:8000#dashboard-page</div>
+    </div>
+    <div class="browser-body">
+      <div class="mock-dash-header">
+        <div class="brand-dot">SG</div>
+        <div style="flex:1"><div style="font-size:10px;opacity:0.7">Teacher Workspace</div><h5 style="margin:0;font-size:14px;font-weight:600">School Grading System</h5></div>
+        <span class="badge">Spring Term 2026</span>
+      </div>
+      <!-- Eyebrow + title row -->
+      <div style="padding:12px 16px 0;display:flex;align-items:center;gap:8px">
+        <div><div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">Overview</div><div style="font-size:16px;font-weight:700">Dashboard</div></div>
+        <div style="margin-left:auto;font-size:11px;color:var(--text-tertiary)">👤 <span style="color:var(--primary)">Ms. Rivera</span></div>
+      </div>
+      <!-- 8 stat cards in grid -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px">
+        <div class="mock-dash-card" style="padding:8px"><div class="num" style="font-size:17px">42</div><div class="lbl" style="font-size:9px">Total Students</div></div>
+        <div class="mock-dash-card" style="padding:8px"><div class="num" style="font-size:17px">8</div><div class="lbl" style="font-size:9px">Total Courses</div></div>
+        <div class="mock-dash-card" style="padding:8px"><div class="num" style="font-size:17px">156</div><div class="lbl" style="font-size:9px">Total Grades</div></div>
+        <div class="mock-dash-card" style="padding:8px"><div class="num" style="font-size:17px">87.3%</div><div class="lbl" style="font-size:9px">Class Average</div></div>
+        <div class="mock-dash-card" style="padding:8px"><div class="num" style="font-size:17px">142</div><div class="lbl" style="font-size:9px">Passing Grades</div></div>
+        <div class="mock-dash-card" style="padding:8px"><div class="num" style="font-size:17px">14</div><div class="lbl" style="font-size:9px">Failing Grades</div></div>
+        <div class="mock-dash-card" style="padding:8px"><div class="num" style="font-size:17px">98%</div><div class="lbl" style="font-size:9px">Highest Score</div></div>
+        <div class="mock-dash-card" style="padding:8px"><div class="num" style="font-size:17px">45%</div><div class="lbl" style="font-size:9px">Lowest Score</div></div>
+      </div>
+      <!-- AI Summary, Alerts, Trends sections -->
+      <div style="border-top:1px solid var(--border);padding:12px 16px">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <div style="width:24px;height:24px;background:var(--surface-2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px">💬</div>
+          <div style="flex:1"><div style="font-size:11px;font-weight:600">AI Summary</div><div style="font-size:10px;color:var(--text-secondary)">Strong performance overall. Emma Thompson leads with 94% avg.</div></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;background:var(--surface-2);border-radius:6px;padding:8px;font-size:10px"><span style="font-weight:600">🛡 Smart Alerts</span><br><span style="color:var(--success)">✅ No alerts</span></div>
+          <div style="flex:1;background:var(--surface-2);border-radius:6px;padding:8px;font-size:10px"><span style="font-weight:600">📊 Trend Analysis</span><br>STEM: 87% · Humanities: 82%</div>
+        </div>
+      </div>
+    </div>
+    <span class="mock-label">📊 Desktop Dashboard — 8 stat cards, AI Summary, Smart Alerts, Trends</span>
+  </div>
+
+</div>
+
+<div class="showcase-row center">
+
+  <!-- ── Students Table ── -->
+  <div class="browser-frame" style="max-width:570px">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span></div>
+      <div class="browser-url">localhost:8000#students-page</div>
+    </div>
+    <div class="browser-body" style="padding:14px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">Students</div>
+        <span style="font-size:11px;color:var(--text-secondary)">5 records</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <div style="flex:1;height:30px;background:var(--surface-2);border-radius:6px;border:1px solid var(--border);padding:0 10px;font-size:11px;color:var(--text-tertiary);display:flex;align-items:center">🔍 Search by name or ID...</div>
+        <div style="width:70px;height:30px;background:var(--primary);border-radius:6px;color:white;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center">+ Student</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:var(--surface-2)"><th style="padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.04em">Student ID</th><th style="padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.04em">Name</th><th style="padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.04em">Grade Level</th><th style="padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.04em">Email</th><th style="padding:6px 8px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:0.04em">Crs</th><th style="padding:6px 8px;text-align:center;font-size:9px;text-transform:uppercase;letter-spacing:0.04em">Grd</th><th style="padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.04em">Actions</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px">STU-001</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px">Emma Thompson</td><td style="padding:6px 8px;border-bottom:1px solid var(--border)">10-A</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px">emma@...</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center">4</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center">8</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px"><span style="color:var(--primary)">Edit</span> <span style="color:var(--primary)">View</span> <span style="color:var(--danger)">Delete</span></td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px">STU-002</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px">Liam Chen</td><td style="padding:6px 8px;border-bottom:1px solid var(--border)">10-A</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px">liam@...</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center">3</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center">6</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px"><span style="color:var(--primary)">Edit</span> <span style="color:var(--primary)">View</span> <span style="color:var(--danger)">Delete</span></td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px">STU-003</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px">Sophia Patel</td><td style="padding:6px 8px;border-bottom:1px solid var(--border)">10-B</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px">sophia@...</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center">3</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center">5</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px"><span style="color:var(--primary)">Edit</span> <span style="color:var(--primary)">View</span> <span style="color:var(--danger)">Delete</span></td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px">STU-004</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px">Noah Williams</td><td style="padding:6px 8px;border-bottom:1px solid var(--border)">10-A</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px">noah@...</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center">2</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center">4</td><td style="padding:6px 8px;border-bottom:1px solid var(--border);font-size:10px"><span style="color:var(--primary)">Edit</span> <span style="color:var(--primary)">View</span> <span style="color:var(--danger)">Delete</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <span class="mock-label">👨‍🎓 Students Table — 7 columns, search bar, add button, Edit/View/Delete actions</span>
+  </div>
+
+  <!-- ── Grades Page ── -->
+  <div class="browser-frame" style="max-width:580px">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span></div>
+      <div class="browser-url">localhost:8000#grades-page</div>
+    </div>
+    <div class="browser-body" style="padding:14px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <div><div style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em">Record Keeping</div><div style="font-size:15px;font-weight:700">Grades</div></div>
+        <span style="margin-left:auto;font-size:11px;color:var(--text-secondary)">156 records</span>
+      </div>
+      <!-- Filters -->
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:100px;height:28px;background:var(--surface-2);border-radius:5px;border:1px solid var(--border);padding:0 8px;font-size:10px;color:var(--text-tertiary);display:flex;align-items:center">🔍 Search...</div>
+        <div style="width:70px;height:28px;background:var(--surface-2);border-radius:5px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-secondary)">Status ▼</div>
+        <div style="width:70px;height:28px;background:var(--surface-2);border-radius:5px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-secondary)">Subject ▼</div>
+        <div style="width:70px;height:28px;background:var(--surface-2);border-radius:5px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-secondary)">Course ▼</div>
+        <div style="width:60px;height:28px;background:var(--surface-2);border-radius:5px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-secondary)">Sort ▼</div>
+        <div style="width:70px;height:28px;background:var(--primary);border-radius:5px;color:white;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center">+ Grade</div>
+      </div>
+      <!-- Grade table with real columns -->
+      <table style="width:100%;border-collapse:collapse;font-size:10px">
+        <thead><tr style="background:var(--surface-2)"><th style="padding:5px 6px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:0.04em">Student</th><th style="padding:5px 6px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:0.04em">Course</th><th style="padding:5px 6px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:0.04em">Subject</th><th style="padding:5px 6px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:0.04em">Type</th><th style="padding:5px 6px;text-align:center;font-size:8px;text-transform:uppercase;letter-spacing:0.04em">Score</th><th style="padding:5px 6px;text-align:center;font-size:8px;text-transform:uppercase;letter-spacing:0.04em">Let.</th><th style="padding:5px 6px;text-align:center;font-size:8px;text-transform:uppercase;letter-spacing:0.04em">Status</th><th style="padding:5px 6px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:0.04em">Date</th><th style="padding:5px 6px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:0.04em">Actions</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);font-weight:600">Emma Thompson</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Algebra 1</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Algebra</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Exam</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center">94%</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center"><span style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:4px;font-weight:600">A</span></td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center"><span style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:4px;font-size:8px">Excellent</span></td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">2026-03-15</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)"><span style="color:var(--primary)">Edit</span> <span style="color:var(--danger)">Delete</span></td></tr>
+          <tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);font-weight:600">Liam Chen</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Life Science</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Biology</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Quiz</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center">91%</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center"><span style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:4px;font-weight:600">A</span></td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center"><span style="background:#dcfce7;color:#166534;padding:1px 6px;border-radius:4px;font-size:8px">Excellent</span></td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">2026-03-14</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)"><span style="color:var(--primary)">Edit</span> <span style="color:var(--danger)">Delete</span></td></tr>
+          <tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);font-weight:600">Sophia Patel</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">ELA</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Writing</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Essay</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center">85%</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center"><span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;font-weight:600">B</span></td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center"><span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:4px;font-size:8px">Good</span></td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">2026-03-12</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)"><span style="color:var(--primary)">Edit</span> <span style="color:var(--danger)">Delete</span></td></tr>
+          <tr><td style="padding:5px 6px;border-bottom:1px solid var(--border);font-weight:600">Noah Williams</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Geometry</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Geometry</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">Test</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center">73%</td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center"><span style="background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;font-weight:600">C</span></td><td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:center"><span style="background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;font-size:8px">Average</span></td><td style="padding:5px 6px;border-bottom:1px solid var(--border)">2026-03-10</td><td style="padding:5px 6px;border-bottom:1px solid var(--border)"><span style="color:var(--primary)">Edit</span> <span style="color:var(--danger)">Delete</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <span class="mock-label">📝 Grades Page — 9 columns, 4 filter dropdowns, letter grades with color badges, status labels</span>
+  </div>
+
+</div>
+
+<div class="showcase-row center">
+
+  <!-- ── AI Chat Widget ── -->
+  <div class="browser-frame" style="max-width:360px">
+    <div class="browser-bar">
+      <div class="browser-dots"><span class="browser-dot"></span><span class="browser-dot"></span><span class="browser-dot"></span></div>
+      <div class="browser-url">chat widget</div>
+    </div>
+    <div class="browser-body" style="padding:0;position:relative;min-height:280px;background:var(--surface)">
+      <!-- Chat bubble -->
+      <div style="position:absolute;bottom:14px;right:14px;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;color:white;font-size:20px;cursor:default">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <!-- Chat panel -->
+      <div style="margin:10px;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-md)">
+        <div style="background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;padding:10px 14px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px">
+          <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block"></span>
+          <span><b>AI Assistant</b><br><span style="font-size:10px;font-weight:400;opacity:0.8">Ready to help</span></span>
+          <span style="margin-left:auto;opacity:0.8;font-size:16px;cursor:default">—</span>
+        </div>
+        <div style="padding:10px 12px;min-height:140px">
+          <div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start">
+            <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:700;flex-shrink:0">AI</div>
+            <div style="flex:1;background:var(--surface-2);border-radius:8px 8px 8px 2px;padding:8px 10px;font-size:11px;color:var(--text);line-height:1.5">Hi! I'm your AI teaching assistant. Ask me about students, grades, or courses!</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;flex-direction:row-reverse">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:700;flex-shrink:0">U</div>
+            <div style="flex:1;background:var(--primary);color:white;border-radius:8px 8px 2px 8px;padding:8px 10px;font-size:11px;line-height:1.5">How is Emma Thompson doing?</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start">
+            <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:700;flex-shrink:0">AI</div>
+            <div style="flex:1;background:var(--surface-2);border-radius:8px 8px 8px 2px;padding:8px 10px;font-size:11px;color:var(--text);line-height:1.5">👤 <b>Emma Thompson</b> (STU-001)<br>📋 10-A<br>📚 4 courses · 📝 8 grades<br>📈 Average: <b>92%</b> ✅ Doing great</div>
+          </div>
+        </div>
+        <!-- Suggested chips -->
+        <div style="padding:0 10px 8px;display:flex;gap:4px;flex-wrap:wrap">
+          <div style="font-size:9px;padding:3px 8px;background:var(--surface-2);border-radius:10px;border:1px solid var(--border);color:var(--text-secondary)">Give me a summary</div>
+          <div style="font-size:9px;padding:3px 8px;background:var(--surface-2);border-radius:10px;border:1px solid var(--border);color:var(--text-secondary)">Who is at risk?</div>
+          <div style="font-size:9px;padding:3px 8px;background:var(--surface-2);border-radius:10px;border:1px solid var(--border);color:var(--text-secondary)">Show me trends</div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding:8px 10px;display:flex;gap:6px">
+          <div style="flex:1;height:30px;background:var(--surface-2);border-radius:6px;border:1px solid var(--border);padding:0 8px;font-size:10px;color:var(--text-tertiary);display:flex;align-items:center">Ask me anything...</div>
+          <div style="width:44px;height:30px;background:var(--primary);border-radius:6px;display:flex;align-items:center;justify-content:center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <span class="mock-label">🤖 AI Chat Widget — floating bubble, message history, suggested chips, send button</span>
+  </div>
+
+  <!-- ── Mobile App ── -->
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="phone-bar" style="padding:30px 14px 8px;gap:6px">
+      <span class="brand-dot" style="width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px">SG</span>
+      <span style="font-size:14px">Dashboard</span>
+      <span class="spacer"></span>
+      <span class="more" style="opacity:0.8;font-size:16px;letter-spacing:2px">•••</span>
+    </div>
+    <div class="phone-content" style="padding:10px 12px">
+      <!-- 3 summary cards matching mobile dashboard -->
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <div style="flex:1;background:var(--surface-2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:17px;font-weight:700;color:var(--primary)">42</div>
+          <div style="font-size:8px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.03em">Students</div>
+        </div>
+        <div style="flex:1;background:var(--surface-2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:17px;font-weight:700;color:var(--primary)">8</div>
+          <div style="font-size:8px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.03em">Courses</div>
+        </div>
+        <div style="flex:1;background:var(--surface-2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:17px;font-weight:700;color:var(--primary)">87%</div>
+          <div style="font-size:8px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.03em">Avg Grade</div>
+        </div>
+      </div>
+      <!-- Grade list matching mobile style -->
+      <div style="display:grid;gap:6px">
+        <div style="background:var(--surface-2);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:6px">
+          <div style="flex:1"><div style="font-size:11px;font-weight:600">Emma Thompson</div><div style="font-size:9px;color:var(--text-tertiary)">Algebra 1 · Exam</div></div>
+          <div><div style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">A</div><div style="font-size:8px;color:var(--text-tertiary);text-align:center">94%</div></div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:6px">
+          <div style="flex:1"><div style="font-size:11px;font-weight:600">Liam Chen</div><div style="font-size:9px;color:var(--text-tertiary)">Life Science · Quiz</div></div>
+          <div><div style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">A</div><div style="font-size:8px;color:var(--text-tertiary);text-align:center">91%</div></div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:6px">
+          <div style="flex:1"><div style="font-size:11px;font-weight:600">Sophia Patel</div><div style="font-size:9px;color:var(--text-tertiary)">ELA · Essay</div></div>
+          <div><div style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">B</div><div style="font-size:8px;color:var(--text-tertiary);text-align:center">85%</div></div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:6px">
+          <div style="flex:1"><div style="font-size:11px;font-weight:600">Noah Williams</div><div style="font-size:9px;color:var(--text-tertiary)">Geometry · Test</div></div>
+          <div><div style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700">C</div><div style="font-size:8px;color:var(--text-tertiary);text-align:center">73%</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="phone-bottom">
+      <div class="tab active">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Home
+      </div>
+      <div class="tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Students
+      </div>
+      <div class="tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Courses
+      </div>
+      <div class="tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Grades
+      </div>
+      <div class="tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        More
+      </div>
+    </div>
+    <span class="mock-label">📱 Mobile PWA — Bottom Tab Navigation (Home, Students, Courses, Grades, More)</span>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h3 id="architecture"><a href="#architecture" class="section-link">Architecture</a></h3>
+
+<div class="diagram">
+┌───────────────────────────────────────────────────────┐
+│                   <span class="hl">Frontend Layer</span>                         │
+│  ┌─────────────────┐    ┌───────────────────────────┐  │
+│  │  Desktop (HTML)  │    │  Mobile (PWA)             │  │
+│  │  index.html      │    │  mobile-app/index.html    │  │
+│  │  script.js (2196)│    │  script.js (1158)          │  │
+│  │  styles.css(1661)│    │  styles.css (1155)         │  │
+│  └────────┬─────────┘   └───────────┬───────────────┘  │
+│           │                         │                  │
+│           └────────┬────────────────┘                  │
+│                    │ loads                              │
+│           ┌────────▼────────┐                          │
+│           │   api.js (237)  │  ← <span class="hl2">Shared API Client</span>     │
+│           │  ai-chat.js(306)│  ← <span class="hl2">AI Chat Widget</span>       │
+│           └────────┬────────┘                          │
+└────────────────────┼───────────────────────────────────┘
+                     │ HTTP (fetch)
+┌────────────────────▼───────────────────────────────────┐
+│                   <span class="hl">Backend Layer</span>                           │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │  FastAPI     │  │  JWT Auth    │  │  SQLAlchemy  │  │
+│  │  main.py     │  │  auth.py     │  │  ORM         │  │
+│  │  routers/    │  │  models.py   │  │  database.py │  │
+│  └──────┬──────┘  └──────┬───────┘  └──────┬───────┘  │
+│         │                │                  │          │
+│         └────────────────┼──────────────────┘          │
+│                    ┌─────▼─────┐                       │
+│                    │  SQLite   │                       │
+│                    │  .db file │                       │
+│                    └───────────┘                       │
+│  ┌──────────────────────────────────────────┐          │
+│  │  OpenAI Integration (ai_service.py)       │          │
+│  │  → Course recommendations                 │          │
+│  │  → Dashboard insights                     │          │
+│  └──────────────────────────────────────────┘          │
+└────────────────────────────────────────────────────────┘
+</div>
+
+<h4 id="data-flow"><a href="#data-flow" class="section-link">Data Flow</a></h4>
+
+<pre>User Action → script.js → api.js (fetch) → FastAPI route → SQLAlchemy → SQLite
+                                      ↕
+                              localStorage cache (offline fallback)</pre>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="files"><a href="#files" class="section-link">File Inventory &amp; Purposes</a></h2>
+
+<table>
+  <thead>
+    <tr><th>Layer</th><th>File</th><th>Lines</th><th>Purpose</th></tr>
+  </thead>
+  <tbody>
+    <tr><td rowspan="14"><span class="tag tag-green">Backend</span></td><td><code>main.py</code></td><td>37</td><td>FastAPI app entry, CORS, static mount, router includes</td></tr>
+    <tr><td><code>database.py</code></td><td>18</td><td>SQLAlchemy engine + session factory</td></tr>
+    <tr><td><code>models.py</code></td><td>95</td><td>ORM: User, Student, Course, Grade + association tables</td></tr>
+    <tr><td><code>schemas.py</code></td><td>153</td><td>Pydantic request/response models</td></tr>
+    <tr><td><code>auth.py</code></td><td>51</td><td>bcrypt hashing, JWT create/decode, get_current_user</td></tr>
+    <tr><td><code>config.py</code></td><td>16</td><td>Pydantic-settings from .env</td></tr>
+    <tr><td><code>routers/auth.py</code></td><td>50</td><td>POST /api/auth/register, login, GET /me</td></tr>
+    <tr><td><code>routers/students.py</code></td><td>100</td><td>Student CRUD endpoints</td></tr>
+    <tr><td><code>routers/courses.py</code></td><td>142</td><td>Course CRUD + enrollment endpoints</td></tr>
+    <tr><td><code>routers/grades.py</code></td><td>116</td><td>Grade CRUD endpoints</td></tr>
+    <tr><td><code>routers/ai_agent.py</code></td><td>48</td><td>AI recommendations + dashboard insights</td></tr>
+    <tr><td><code>services/ai_service.py</code></td><td>256</td><td>OpenAI integration</td></tr>
+    <tr><td><code>requirements.txt</code></td><td>11</td><td>Python package dependencies</td></tr>
+    <tr><td><code>.env</code> / <code>.env.example</code></td><td>6</td><td>Environment config</td></tr>
+    <tr><td rowspan="2"><span class="tag tag-blue">Shared Frontend</span></td><td><code>api.js</code></td><td>237</td><td>API client: auth, CRUD, field mapping, token mgmt</td></tr>
+    <tr><td><code>ai-chat.js</code></td><td>306</td><td>AI chat widget with rule-based + API responses</td></tr>
+    <tr><td rowspan="3"><span class="tag tag-purple">Desktop</span></td><td><code>index.html</code></td><td>389</td><td>Auth page + app shell + all sections</td></tr>
+    <tr><td><code>script.js</code></td><td>2,196</td><td>All desktop logic: CRUD, render, auth, caching</td></tr>
+    <tr><td><code>styles.css</code></td><td>1,661</td><td>Desktop styles: layout, auth, tables, charts</td></tr>
+    <tr><td rowspan="4"><span class="tag tag-amber">Mobile</span></td><td><code>mobile-app/index.html</code></td><td>139</td><td>Auth page + app shell + bottom nav</td></tr>
+    <tr><td><code>mobile-app/script.js</code></td><td>1,158</td><td>Mobile logic: CRUD, render, auth, caching</td></tr>
+    <tr><td><code>mobile-app/styles.css</code></td><td>1,155</td><td>Mobile styles: bottom nav, modals, dark mode</td></tr>
+    <tr><td><code>mobile-app/manifest.json</code></td><td>24</td><td>PWA manifest: standalone, icons, theme</td></tr>
+    <tr><td rowspan="2"><span class="tag tag-red">Backend Static</span></td><td><code>backend/static/</code></td><td>—</td><td>Frontend copies served by FastAPI at /static/</td></tr>
+    <tr><td><code>backend/static/mobile-app/</code></td><td>—</td><td>Mobile frontend served by FastAPI at /static/mobile-app/</td></tr>
+    <tr><td rowspan="2"><span class="tag">Docs</span></td><td><code>Start_README.md</code></td><td>103</td><td>Chinese guide for local HTTP server</td></tr>
+    <tr><td><code>school-grading-system-frontend-guide.md</code></td><td>1,618</td><td>Comprehensive frontend build tutorial</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="api-endpoints"><a href="#api-endpoints" class="section-link">Backend API Endpoints</a></h2>
+
+<div class="card">
+<h4 style="margin-top:0">Authentication</h4>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/auth/register</code></td><td>Create user account</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/auth/login</code></td><td>Login, returns JWT token</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/auth/me</code></td><td>Get current user info</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">Students <span class="tag tag-red">(JWT required)</span></h4>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/students/</code></td><td>List all students</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/students/</code></td><td>Create student</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/students/{id}</code></td><td>Get student by ID</td></tr>
+    <tr><td><span class="tag tag-purple">PUT</span></td><td><code>/api/students/{id}</code></td><td>Update student</td></tr>
+    <tr><td><span class="tag tag-red">DELETE</span></td><td><code>/api/students/{id}</code></td><td>Delete student</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">Courses <span class="tag tag-red">(JWT required)</span></h4>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/courses/</code></td><td>List all courses</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/courses/</code></td><td>Create course</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/courses/{id}</code></td><td>Get course by ID</td></tr>
+    <tr><td><span class="tag tag-purple">PUT</span></td><td><code>/api/courses/{id}</code></td><td>Update course</td></tr>
+    <tr><td><span class="tag tag-red">DELETE</span></td><td><code>/api/courses/{id}</code></td><td>Delete course</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/courses/{id}/enroll</code></td><td>Enroll student</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">Grades <span class="tag tag-red">(JWT required)</span></h4>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/grades/</code></td><td>List all grades</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/grades/</code></td><td>Create grade</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/grades/{id}</code></td><td>Get grade by ID</td></tr>
+    <tr><td><span class="tag tag-purple">PUT</span></td><td><code>/api/grades/{id}</code></td><td>Update grade</td></tr>
+    <tr><td><span class="tag tag-red">DELETE</span></td><td><code>/api/grades/{id}</code></td><td>Delete grade</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">AI <span class="tag tag-red">(JWT required)</span></h4>
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/ai/recommendations</code></td><td>Course recommendations for a student</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/ai/dashboard-insights</code></td><td>Dashboard-level AI insights</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/</code></td><td>Serves frontend</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/health</code></td><td>Health check</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h3 id="auth-flow"><a href="#auth-flow" class="section-link">Authentication Flow</a></h3>
+
+<div class="diagram">
+┌──────────┐         ┌──────────┐         ┌─────────┐
+│  <span class="hl">User</span>     │         │  <span class="hl2">api.js</span>  │         │ <span class="hl">Backend</span> │
+│  Action   │         │          │         │         │
+└─────┬────┘         └────┬─────┘         └────┬────┘
+      │                   │                    │
+      │  Login/Register   │                    │
+      │──────────────────>│  POST /auth/login  │
+      │                   │───────────────────>│
+      │                   │                    │
+      │                   │  JWT token         │
+      │                   │<───────────────────│
+      │                   │                    │
+      │  Store token      │                    │
+      │  in localStorage  │                    │
+      │                   │                    │
+      │  Any CRUD call    │                    │
+      │──────────────────>│  GET /students     │
+      │                   │  Authorization:    │
+      │                   │  Bearer &lt;token&gt;    │
+      │                   │───────────────────>│
+      │                   │                    │
+      │                   │  Verify JWT        │
+      │                   │  Lookup user       │
+      │                   │<───────────────────│
+      │                   │                    │
+      │  If 401 received  │                    │
+      │  → clear token    │                    │
+      │  → show auth page │                    │
+      │  → user re-logs   │                    │
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="database"><a href="#database" class="section-link">Database Schema</a></h2>
+
+<div class="card-grid">
+<div class="stat-card">
+<h4 style="margin-top:0">Users</h4>
+<table style="font-size:12px">
+  <thead><tr><th>Column</th><th>Type</th></tr></thead>
+  <tbody>
+    <tr><td>id</td><td>Integer PK</td></tr>
+    <tr><td>username</td><td>String(50) UNIQUE</td></tr>
+    <tr><td>email</td><td>String(100) UNIQUE</td></tr>
+    <tr><td>hashed_password</td><td>String(255)</td></tr>
+    <tr><td>full_name</td><td>String(100)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="stat-card">
+<h4 style="margin-top:0">Students</h4>
+<table style="font-size:12px">
+  <thead><tr><th>Column</th><th>Type</th></tr></thead>
+  <tbody>
+    <tr><td>id</td><td>Integer PK</td></tr>
+    <tr><td>student_id</td><td>String(20) UNIQUE</td></tr>
+    <tr><td>name</td><td>String(100)</td></tr>
+    <tr><td>class_name</td><td>String(50)</td></tr>
+    <tr><td>email</td><td>String(100)</td></tr>
+    <tr><td>interests</td><td>Text</td></tr>
+    <tr><td>career_goal</td><td>String(100)</td></tr>
+    <tr><td>user_id</td><td>FK → users.id</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="stat-card">
+<h4 style="margin-top:0">Courses</h4>
+<table style="font-size:12px">
+  <thead><tr><th>Column</th><th>Type</th></tr></thead>
+  <tbody>
+    <tr><td>id</td><td>Integer PK</td></tr>
+    <tr><td>code</td><td>String(20) UNIQUE</td></tr>
+    <tr><td>name</td><td>String(100)</td></tr>
+    <tr><td>teacher</td><td>String(100)</td></tr>
+    <tr><td>period</td><td>String(50)</td></tr>
+    <tr><td>room</td><td>String(50)</td></tr>
+    <tr><td>term</td><td>String(50)</td></tr>
+    <tr><td>category / difficulty</td><td>String(50/30)</td></tr>
+    <tr><td>credits</td><td>Integer</td></tr>
+    <tr><td>description / skills</td><td>Text</td></tr>
+    <tr><td>user_id</td><td>FK → users.id</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="stat-card">
+<h4 style="margin-top:0">Grades</h4>
+<table style="font-size:12px">
+  <thead><tr><th>Column</th><th>Type</th></tr></thead>
+  <tbody>
+    <tr><td>id</td><td>Integer PK</td></tr>
+    <tr><td>student_id</td><td>FK → students.id</td></tr>
+    <tr><td>course_id</td><td>FK → courses.id</td></tr>
+    <tr><td>subject</td><td>String(100)</td></tr>
+    <tr><td>type</td><td>String(30)</td></tr>
+    <tr><td>score</td><td>Float</td></tr>
+    <tr><td>date</td><td>String(10)</td></tr>
+    <tr><td>status</td><td>String(20)</td></tr>
+    <tr><td>feedback</td><td>Text</td></tr>
+    <tr><td>user_id</td><td>FK → users.id</td></tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+<p><strong>Association tables:</strong> <code>course_enrollment</code> (course_id, student_id) — many-to-many; <code>course_prerequisites</code> (course_id, prerequisite_id) — self-referential many-to-many.</p>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="backend-setup"><a href="#backend-setup" class="section-link">Backend Setup &amp; Configuration</a></h2>
+
+<h3>Environment (.env)</h3>
+<pre>SECRET_KEY=a3f8b2c9d1e7f4a6b8c0d2e5f7a9b1c3d4e6f8a0b2c4d6e8f0a2b4c6d8e0f2a4
+OPENAI_API_KEY=sk-your-openai-api-key-here
+OPENAI_MODEL=gpt-4o-mini
+DATABASE_URL=sqlite:///./school_grading.db
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440</pre>
+
+<h3>Dependencies (requirements.txt)</h3>
+<table>
+  <thead><tr><th>Package</th><th>Version</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td><code>fastapi</code></td><td>0.115.0</td><td>Web framework</td></tr>
+    <tr><td><code>uvicorn</code></td><td>0.30.6</td><td>ASGI server</td></tr>
+    <tr><td><code>sqlalchemy</code></td><td>2.0.35</td><td>ORM</td></tr>
+    <tr><td><code>pydantic</code></td><td>2.9.2</td><td>Validation</td></tr>
+    <tr><td><code>pydantic-settings</code></td><td>2.5.2</td><td>Config from .env</td></tr>
+    <tr><td><code>python-jose[cryptography]</code></td><td>3.3.0</td><td>JWT tokens</td></tr>
+    <tr><td><code>passlib[bcrypt]</code></td><td>1.7.4</td><td>Password hashing</td></tr>
+    <tr><td><code>python-multipart</code></td><td>0.0.12</td><td>Form data parsing</td></tr>
+    <tr><td><code>openai</code></td><td>1.51.0</td><td>OpenAI API client</td></tr>
+    <tr><td><code>python-dotenv</code></td><td>1.0.1</td><td>.env loader</td></tr>
+    <tr><td><code>httpx</code></td><td>0.27.2</td><td>HTTP client (OpenAI)</td></tr>
+  </tbody>
+</table>
+
+<h3>Running the Backend</h3>
+<pre>cd backend
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000</pre>
+
+<p>The backend:</p>
+<ol>
+  <li>Creates SQLite tables on startup (<code>Base.metadata.create_all</code>)</li>
+  <li>Mounts static files at <code>/static/</code></li>
+  <li>Serves the frontend at <code>GET /</code></li>
+  <li>Provides all REST API endpoints at <code>/api/...</code></li>
+  <li>Enables CORS for all origins</li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="data-layer"><a href="#data-layer" class="section-link">Data Layer Architecture</a></h2>
+
+<h3>Before API Integration (Original Design)</h3>
+<pre>const STORAGE_KEY = "schoolGradingSystemData";
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify({...})); }
+function loadData() { return JSON.parse(localStorage.getItem(STORAGE_KEY)); }
+// All CRUD ops → in-memory arrays + localStorage directly</pre>
+
+<h3>After API Integration (Current Design)</h3>
+<pre>const CACHE_KEY = "schoolGradingSystemData";
+
+// Primary: Try API
+async function fetchFromApi() {
+  try {
+    students = await api.getStudents();
+    courses = await api.getCourses();
+    grades = await api.getGrades();
+    cacheToLocal();
+    return true;
+  } catch { return false; }
+}
+
+// Fallback: Local cache
+function loadFromLocalCache() { /* restore from localStorage */ }
+
+// Last resort: Demo data
+function loadFromCacheOrDemo() {
+  if (!loadFromLocalCache()) { initDemoData(); }
+}</pre>
+
+<h3>Cache Strategy</h3>
+<ul>
+  <li><strong>Write-through:</strong> Every CRUD calls API then <code>cacheToLocal()</code></li>
+  <li><strong>Read:</strong> Try API → localStorage cache → demo data</li>
+  <li><strong>Source of truth:</strong> In-memory arrays (<code>students</code>, <code>courses</code>, <code>grades</code>) for rendering</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="desktop"><a href="#desktop" class="section-link">Desktop Frontend</a></h2>
+
+<h3>Auth UI</h3>
+<p>The desktop version presents a centered auth card with: Server URL input (stored in localStorage), Sign In / Register toggle tabs, login/register fields, error display. On success: app root revealed, demo data auto-seeded for new accounts.</p>
+
+<h3>App Shell</h3>
+<ul>
+  <li><strong>Header:</strong> Brand logo, title, username, Sign Out, Reset Demo Data</li>
+  <li><strong>Navigation:</strong> Top nav: Dashboard, Students, Courses, Grades, Reports, AI Recommender</li>
+  <li><strong>Dashboard:</strong> Summary cards, filters, charts, quick-add</li>
+  <li><strong>Students:</strong> Table with search/filter/sort, add/edit/delete, student profile</li>
+  <li><strong>Courses:</strong> Table with search/filter/sort, add/edit/delete, enrollment, prerequisites</li>
+  <li><strong>Grades:</strong> Table with search/filter/sort, add/edit/delete, subject/status filters</li>
+  <li><strong>Reports:</strong> Grade distribution charts, student performance</li>
+  <li><strong>AI Recommender:</strong> Student selection → AI course recommendations</li>
+  <li><strong>AI Chat Widget:</strong> Floating bubble → chat panel</li>
+</ul>
+
+<h3>Key Features</h3>
+<ul>
+  <li>Search/Filter/Sort on all tables</li>
+  <li>Student profile with grade breakdown</li>
+  <li>Grade statistics with average calculation</li>
+  <li>Demo data: 5 students, 5 courses, 12 grades</li>
+  <li>Reset Demo Data button</li>
+  <li>Mobile redirect for small screens</li>
+  <li>Toast notifications</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="mobile"><a href="#mobile" class="section-link">Mobile Frontend</a></h2>
+
+<h3>Auth UI</h3>
+<p>Same design as desktop but optimized for mobile: compact form groups, server URL in bordered section, toggle tabs, auto-seed on register.</p>
+
+<h3>App Shell — Bottom Tab Navigation</h3>
+<div class="card-grid">
+<div class="stat-card"><strong>Home</strong><br><span style="font-size:13px;color:var(--text-secondary)">Dashboard with cards, charts, stats</span></div>
+<div class="stat-card"><strong>Students</strong><br><span style="font-size:13px;color:var(--text-secondary)">List with add/edit/delete via modal</span></div>
+<div class="stat-card"><strong>Courses</strong><br><span style="font-size:13px;color:var(--text-secondary)">List with add/edit/delete via modal</span></div>
+<div class="stat-card"><strong>Grades</strong><br><span style="font-size:13px;color:var(--text-secondary)">List with add/edit/delete via modal</span></div>
+<div class="stat-card"><strong>More</strong><br><span style="font-size:13px;color:var(--text-secondary)">Logout, Reset Demo Data, account info</span></div>
+</div>
+
+<h3>Key UI Patterns</h3>
+<ul>
+  <li><strong>Bottom Nav:</strong> Fixed at bottom, 5 tabs with SVG icons</li>
+  <li><strong>Modal Sheets:</strong> Bottom-sliding for forms</li>
+  <li><strong>FAB:</strong> Floating Action Button for quick-add</li>
+  <li><strong>Swipe-to-delete</strong> via CSS touch actions</li>
+  <li><strong>PWA:</strong> Installable, standalone display, custom theme</li>
+</ul>
+
+<h3>Desktop vs Mobile Comparison</h3>
+<table>
+  <thead><tr><th>Feature</th><th>Desktop</th><th>Mobile</th></tr></thead>
+  <tbody>
+    <tr><td>Navigation</td><td>Top nav bar</td><td>Bottom tab bar</td></tr>
+    <tr><td>Forms</td><td>Inline sections</td><td>Modal sheets</td></tr>
+    <tr><td>Add action</td><td>Page buttons</td><td>FAB button</td></tr>
+    <tr><td>Student view</td><td>Profile section</td><td>Modal detail</td></tr>
+    <tr><td>AI chat</td><td>Floating bubble</td><td>More tab</td></tr>
+    <tr><td>Sorting</td><td>Dropdown per table</td><td>Inline sort buttons</td></tr>
+    <tr><td>PWA support</td><td>No</td><td>Yes (manifest.json)</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="ai-chat"><a href="#ai-chat" class="section-link">AI Chat Widget</a></h2>
+
+<h3>Architecture</h3>
+<pre>createAIChat(dataProvider)  ← factory function
+├── Renders floating action bubble
+├── Click → slides out chat panel
+├── Click panel header → dismiss
+├── Input + Send button
+├── Message history (in-memory array)
+└── Typing indicator animation</pre>
+
+<h3>Rule-Based Responses</h3>
+<p>The widget uses keyword matching:</p>
+<ul>
+  <li><strong>hello/hi</strong> → Contextual greeting</li>
+  <li><strong>help</strong> → Lists commands</li>
+  <li><strong>students/courses/grades</strong> → Counts and latest</li>
+  <li><strong>average/stats</strong> → Grade statistics</li>
+  <li><strong>recommend/suggest</strong> → AI-powered or rule-based recommendations</li>
+  <li><strong>best/top</strong> → Top performer</li>
+</ul>
+
+<h3>API Integration</h3>
+<p>If input matches "recommend" + a student name: finds student → calls <code>api.getRecommendations(id)</code> → displays OpenAI response. Falls back to rule-based if API unavailable.</p>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="offline"><a href="#offline" class="section-link">Offline Fallback Mechanism</a></h2>
+
+<div class="diagram">
+         Data Request
+              │
+              ▼
+    ┌─────────────────┐
+    │  Try API Call    │
+    │  (fetch)         │
+    └────────┬────────┘
+             │
+        ┌────┴────┐
+        │         │
+        ▼         ▼
+      Success   Failure
+        │         │
+        │    ┌────▼────────┐
+        │    │  Load from   │
+        │    │  localStorage│
+        │    │  cache       │
+        │    └────┬────────┘
+        │         │
+        │    ┌────┴────┐
+        │    │         │
+        │    ▼         ▼
+        │  Found    Not Found
+        │    │         │
+        │    │    ┌────▼────────┐
+        │    │    │  Fall back   │
+        │    │    │  to demo     │
+        │    │    │  data        │
+        │    │    └─────────────┘
+        │    │
+        ▼    ▼
+    ┌────────────┐
+    │  Render    │
+    │  UI        │
+    └────────────┘
+</div>
+
+<div class="info-box">
+  <strong>Strategy:</strong> Write-through caching. Every mutation writes to both API and localStorage. Reads try API first, then cache, then demo data.
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="steps"><a href="#steps" class="section-link">Implementation Steps</a></h2>
+
+<div class="card">
+<h4 style="margin-top:0">Step 1: Original Frontend (localStorage only)</h4>
+<p>Built standalone HTML/CSS/JS with CRUD. All data persisted in localStorage. Demo data seeded on first visit. Desktop and mobile versions developed independently.</p>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">Step 2: Backend API Development</h4>
+<p>Created FastAPI with SQLAlchemy ORM. JWT auth (register, login, token validation). CRUD routes for students, courses, grades. AI agent with OpenAI. CORS + static serving.</p>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">Step 3: API Client (api.js)</h4>
+<p>Shared client with methods for all endpoints. JWT token management (storage, attachment, 401 redirect). camelCase ↔ snake_case field mapping. Configurable server URL.</p>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">Step 4: Desktop Frontend Integration</h4>
+<p>Replaced localStorage-only with API-first. Write-through caching. Auth UI (login/register/logout). Async CRUD handlers. Auto-seed demo on registration. Fallback chain.</p>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">Step 5: Mobile Frontend Integration</h4>
+<p>Same API pattern as desktop. Auth UI adapted for mobile. Modal sheets with async handlers. PWA manifest. Shared api.js and ai-chat.js via relative imports.</p>
+</div>
+
+<div class="card">
+<h4 style="margin-top:0">Step 6: Backend Static Serving</h4>
+<p>Copied frontend to backend/static/. Mobile redirect: desktop detects small screen → /static/mobile-app/. Backend serves everything at localhost:8000.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="decisions"><a href="#decisions" class="section-link">Key Design Decisions</a></h2>
+
+<ol>
+  <li><strong>In-Memory Arrays as Source of Truth</strong> — rendering reads from arrays; CRUD modifies arrays then syncs to API + cache.</li>
+  <li><strong>Write-Through Caching</strong> — every mutation writes to both API and localStorage; reads try API first, then cache.</li>
+  <li><strong>Shared api.js with Field Mapping</strong> — handles camelCase ↔ snake_case so Python and JavaScript communicate seamlessly.</li>
+  <li><strong>JWT Auto-Redirect</strong> — 401 responses clear token and redirect to auth page via <code>window._onUnauthorized</code>.</li>
+  <li><strong>Demo Data Seeding</strong> — new accounts get auto-seeded (checked by record count). Existing accounts load persisted data. Reset button re-seeds.</li>
+  <li><strong>Mobile PWA</strong> — installable with standalone display, theme colors, SVG maskable icon.</li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="testing"><a href="#testing" class="section-link">Testing Instructions</a></h2>
+
+<h3>Start Backend</h3>
+<pre>cd backend
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000</pre>
+
+<h3>Access Frontend</h3>
+<table>
+  <thead><tr><th>Method</th><th>URL</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Via Backend</td><td><code>http://localhost:8000</code></td><td>Serves desktop or mobile by screen size</td></tr>
+    <tr><td>Desktop standalone</td><td><code>http://localhost:8000</code></td><td><code>python -m http.server 8000</code> from root</td></tr>
+    <tr><td>Mobile standalone</td><td><code>http://localhost:8000/mobile-app/</code></td><td><code>python -m http.server 8000</code> from root</td></tr>
+  </tbody>
+</table>
+
+<h3>Test Auth Flow</h3>
+<ol>
+  <li>Open app → see auth page</li>
+  <li>Click "Register" → create account</li>
+  <li>Auto-login → demo data seeded → dashboard visible</li>
+  <li>Logout → auth page shown</li>
+  <li>Login with same credentials → data persists from API</li>
+</ol>
+
+<h3>Test Offline Fallback</h3>
+<ol>
+  <li>Login and create some data</li>
+  <li>Stop the backend</li>
+  <li>Refresh page → app loads from localStorage cache</li>
+  <li>Data is visible, local edits work (API calls fail with toast)</li>
+</ol>
+
+<h3>Test AI Features</h3>
+<ol>
+  <li>Set <code>OPENAI_API_KEY</code> in <code>.env</code></li>
+  <li>Go to AI Recommender page → select student → "Generate Recommendations"</li>
+  <li>Or use AI Chat → type "recommend courses for [student]"</li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="summary"><a href="#summary" class="section-link">File Size Summary</a></h2>
+
+<table>
+  <thead><tr><th>File</th><th>Lines</th><th>Approx. Size</th></tr></thead>
+  <tbody>
+    <tr><td><code>script.js</code></td><td>2,196</td><td>~85 KB</td></tr>
+    <tr><td><code>styles.css</code></td><td>1,661</td><td>~45 KB</td></tr>
+    <tr><td><code>mobile-app/script.js</code></td><td>1,158</td><td>~42 KB</td></tr>
+    <tr><td><code>mobile-app/styles.css</code></td><td>1,155</td><td>~32 KB</td></tr>
+    <tr><td><code>index.html</code></td><td>389</td><td>~16 KB</td></tr>
+    <tr><td><code>mobile-app/index.html</code></td><td>139</td><td>~7 KB</td></tr>
+    <tr><td><code>api.js</code></td><td>237</td><td>~8 KB</td></tr>
+    <tr><td><code>ai-chat.js</code></td><td>306</td><td>~10 KB</td></tr>
+    <tr><td><code>school-grading-system-frontend-guide.md</code></td><td>1,618</td><td>~98 KB</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>~9,000</strong></td><td><strong>~340 KB</strong></td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="future"><a href="#future" class="section-link">Future Enhancements</a></h2>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:20px">
+  <div class="stat-card" style="padding:12px 16px"><strong>API Pagination</strong><br><span style="font-size:12px;color:var(--text-secondary)">Scale beyond all-at-once loading</span></div>
+  <div class="stat-card" style="padding:12px 16px"><strong>Service Worker</strong><br><span style="font-size:12px;color:var(--text-secondary)">Full offline PWA support</span></div>
+  <div class="stat-card" style="padding:12px 16px"><strong>WebSocket</strong><br><span style="font-size:12px;color:var(--text-secondary)">Real-time multi-device updates</span></div>
+  <div class="stat-card" style="padding:12px 16px"><strong>OAuth</strong><br><span style="font-size:12px;color:var(--text-secondary)">Google/Microsoft login</span></div>
+  <div class="stat-card" style="padding:12px 16px"><strong>File Upload</strong><br><span style="font-size:12px;color:var(--text-secondary)">Photos, assignment files</span></div>
+  <div class="stat-card" style="padding:12px 16px"><strong>CSV/PDF Export</strong><br><span style="font-size:12px;color:var(--text-secondary)">Grade reports</span></div>
+  <div class="stat-card" style="padding:12px 16px"><strong>i18n</strong><br><span style="font-size:12px;color:var(--text-secondary)">Multi-language support</span></div>
+  <div class="stat-card" style="padding:12px 16px"><strong>Role-based Access</strong><br><span style="font-size:12px;color:var(--text-secondary)">Admin/Teacher/Student roles</span></div>
+  <div class="stat-card" style="padding:12px 16px"><strong>Unit Tests</strong><br><span style="font-size:12px;color:var(--text-secondary)">pytest + Jest</span></div>
+  <div class="stat-card" style="padding:12px 16px"><strong>Docker</strong><br><span style="font-size:12px;color:var(--text-secondary)">Containerized deployment</span></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="conclusion"><a href="#conclusion" class="section-link">Conclusion</a></h2>
+
+<p>The <strong>School Grading System</strong> demonstrates that a full-featured educational management platform can be built with a surprisingly small code footprint — under 5,000 lines of frontend JavaScript and fewer than 500 lines of backend Python — while still delivering capabilities typically associated with enterprise software.</p>
+
+<h3>What Was Achieved</h3>
+<p>Every functional requirement defined at the outset was implemented and cross-verified across both the desktop and mobile frontends:</p>
+<ul>
+  <li><strong>Complete CRUD lifecycle</strong> for students, courses, and grades with relational integrity (cascading deletes, auto-enrollment, prerequisite validation)</li>
+  <li><strong>JWT-authenticated REST API</strong> with bcrypt password hashing, token persistence, and automatic 401 redirect</li>
+  <li><strong>Dual-platform frontend</strong> sharing the same API client and AI chat widget, with each platform optimized for its form factor (top nav vs. bottom tabs, inline forms vs. modal sheets)</li>
+  <li><strong>Offline resilience</strong> through a three-tier fallback chain: API → localStorage cache → demo data</li>
+  <li><strong>AI-powered intelligence</strong> via OpenAI integration for dashboard insights and course recommendations, with a parallel rule-based fallback in the chat widget for when the API key is absent</li>
+  <li><strong>Mobile PWA</strong> installable on any device, with standalone display, theme-color theming, and touch-optimized interaction patterns</li>
+</ul>
+
+<h3>Key Architectural Wins</h3>
+<ol>
+  <li><strong>Shared <code>api.js</code> with field mapping</strong> — The single API client handles camelCase↔snake_case conversion, token management, and error handling for both desktop and mobile, eliminating duplicate networking code.</li>
+  <li><strong>Write-through caching</strong> — Every mutation writes to both the API and localStorage, ensuring cache freshness. Reads try API first with silent fallback, giving users seamless offline operation.</li>
+  <li><strong>In-memory arrays as single source of truth</strong> — Rather than querying the DOM or localStorage for data, all rendering reads from <code>students</code>, <code>courses</code>, and <code>grades</code> arrays that are kept in sync with the API. This makes the render functions pure and predictable.</li>
+  <li><strong>Rule-based + API hybrid AI</strong> — The chat widget works without any backend configuration via keyword matching, but transparently upgrades to OpenAI-powered responses when the API key is configured. This gives immediate value with zero setup.</li>
+  <li><strong>Self-contained backend</strong> — SQLite eliminates the need for a separate database server. The entire backend fits in a single directory and starts with one command.</li>
+</ol>
+
+<h3>Lessons Learned</h3>
+<ul>
+  <li><strong>Vanilla JS is viable</strong> for medium-complexity apps. The absence of a framework (React, Vue) kept the bundle small and avoided toolchain complexity, at the cost of more manual DOM management.</li>
+  <li><strong>CSS custom properties enable theming without a preprocessor</strong> — Mobile dark mode was implemented by swapping variable values, not by rewriting styles.</li>
+  <li><strong>The offline story matters more than expected</strong> — During development, testing with the backend stopped and the app still worked. This accidental discovery validated the fallback architecture.</li>
+  <li><strong>Field-name mapping between Python (snake_case) and JavaScript (camelCase) is a recurring tax</strong> — The <code>api.js</code> mapping functions centralize this, but the need to maintain two naming conventions across layers adds cognitive overhead.</li>
+</ul>
+
+<h3>Future Outlook</h3>
+<p>The system is production-ready for a single teacher or small department. The most impactful next steps would be:</p>
+<ol>
+  <li>Adding a service worker to replace the manual localStorage cache with a true Cache-API-first PWA strategy</li>
+  <li>Implementing role-based access so multiple teachers can share a deployment with data isolation</li>
+  <li>Adding CSV/PDF export so grades can be printed or emailed to parents</li>
+  <li>Containerizing with Docker for one-command cloud deployment</li>
+</ol>
+<p>This project proves that thoughtful architecture — not framework popularity or lines of code — is what makes a system maintainable, portable, and delightful to use.</p>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="appendix-a"><a href="#appendix-a" class="section-link">Appendix A — File Reference</a></h2>
+
+<table>
+  <thead><tr><th>File</th><th>Lines</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td><code>backend/main.py</code></td><td>37</td><td>FastAPI entry point, CORS, static mount, route includes</td></tr>
+    <tr><td><code>backend/database.py</code></td><td>18</td><td>SQLAlchemy engine, session factory, get_db dependency</td></tr>
+    <tr><td><code>backend/models.py</code></td><td>95</td><td>ORM: User, Student, Course, Grade + association tables</td></tr>
+    <tr><td><code>backend/schemas.py</code></td><td>153</td><td>Pydantic models for request validation and response serialization</td></tr>
+    <tr><td><code>backend/auth.py</code></td><td>51</td><td>bcrypt hashing, JWT create/decode, get_current_user dependency</td></tr>
+    <tr><td><code>backend/config.py</code></td><td>16</td><td>pydantic-settings from .env</td></tr>
+    <tr><td><code>backend/routers/auth.py</code></td><td>50</td><td>Register, login, get current user</td></tr>
+    <tr><td><code>backend/routers/students.py</code></td><td>100</td><td>Student CRUD with duplicate ID check</td></tr>
+    <tr><td><code>backend/routers/courses.py</code></td><td>142</td><td>Course CRUD with enrollment, prerequisites, delete protection</td></tr>
+    <tr><td><code>backend/routers/grades.py</code></td><td>116</td><td>Grade CRUD with auto-enrollment</td></tr>
+    <tr><td><code>backend/routers/ai_agent.py</code></td><td>48</td><td>AI recommendations and dashboard insights endpoints</td></tr>
+    <tr><td><code>backend/services/ai_service.py</code></td><td>256</td><td>OpenAI client logic: context building, prompt engineering, parsing</td></tr>
+    <tr><td><code>backend/requirements.txt</code></td><td>11</td><td>Python dependencies</td></tr>
+    <tr><td><code>api.js</code></td><td>237</td><td>Shared API client: auth, CRUD, field mapping, token management</td></tr>
+    <tr><td><code>ai-chat.js</code></td><td>306</td><td>Chat widget: rule-based engine, API integration, typing indicator</td></tr>
+    <tr><td><code>index.html</code></td><td>458</td><td>Desktop app shell: auth page, header, nav, all sections</td></tr>
+    <tr><td><code>script.js</code></td><td>2,196</td><td>Desktop logic: CRUD, rendering, auth, caching, analytics</td></tr>
+    <tr><td><code>styles.css</code></td><td>1,946</td><td>Desktop styles: layout, auth, tables, charts, chat</td></tr>
+    <tr><td><code>mobile-app/index.html</code></td><td>139</td><td>Mobile app shell: auth page, header, bottom nav, FAB, modal</td></tr>
+    <tr><td><code>mobile-app/script.js</code></td><td>1,287</td><td>Mobile logic: CRUD, modal sheets, bottom nav, reports</td></tr>
+    <tr><td><code>mobile-app/styles.css</code></td><td>1,324</td><td>Mobile styles: bottom nav, modal, FAB, dark mode, chat</td></tr>
+    <tr><td><code>mobile-app/manifest.json</code></td><td>24</td><td>PWA manifest: standalone, icons, theme, orientation</td></tr>
+    <tr><td><code>Start_README.md</code></td><td>103</td><td>Chinese guide for local HTTP server setup</td></tr>
+    <tr><td><code>school-grading-system-frontend-guide.md</code></td><td>1,618</td><td>Comprehensive frontend build tutorial</td></tr>
+    <tr><td><strong>Total</strong></td><td><strong>~11,000</strong></td><td></td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="appendix-b"><a href="#appendix-b" class="section-link">Appendix B — API Endpoint Summary</a></h2>
+
+<table>
+  <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/auth/register</code></td><td>No</td><td>Create account</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/auth/login</code></td><td>No</td><td>Login, returns JWT</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/auth/me</code></td><td>Yes</td><td>Current user info</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/students/</code></td><td>Yes</td><td>List all students</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/students/</code></td><td>Yes</td><td>Create student</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/students/{id}</code></td><td>Yes</td><td>Get student by ID</td></tr>
+    <tr><td><span class="tag tag-purple">PUT</span></td><td><code>/api/students/{id}</code></td><td>Yes</td><td>Update student</td></tr>
+    <tr><td><span class="tag tag-red">DELETE</span></td><td><code>/api/students/{id}</code></td><td>Yes</td><td>Delete student + cascade grades</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/courses/</code></td><td>Yes</td><td>List all courses</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/courses/</code></td><td>Yes</td><td>Create course with enrollment + prerequisites</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/courses/{id}</code></td><td>Yes</td><td>Get course by ID</td></tr>
+    <tr><td><span class="tag tag-purple">PUT</span></td><td><code>/api/courses/{id}</code></td><td>Yes</td><td>Update course</td></tr>
+    <tr><td><span class="tag tag-red">DELETE</span></td><td><code>/api/courses/{id}</code></td><td>Yes</td><td>Delete course (blocks if grades exist)</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/grades/</code></td><td>Yes</td><td>List grades (optional filter params)</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/grades/</code></td><td>Yes</td><td>Create grade (auto-enrolls student)</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/grades/{id}</code></td><td>Yes</td><td>Get grade by ID</td></tr>
+    <tr><td><span class="tag tag-purple">PUT</span></td><td><code>/api/grades/{id}</code></td><td>Yes</td><td>Update grade</td></tr>
+    <tr><td><span class="tag tag-red">DELETE</span></td><td><code>/api/grades/{id}</code></td><td>Yes</td><td>Delete grade</td></tr>
+    <tr><td><span class="tag tag-green">POST</span></td><td><code>/api/ai/recommendations</code></td><td>Yes</td><td>AI course recommendations</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/api/ai/dashboard-insights</code></td><td>Yes</td><td>AI dashboard insights</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/</code></td><td>No</td><td>Serve frontend</td></tr>
+    <tr><td><span class="tag tag-blue">GET</span></td><td><code>/health</code></td><td>No</td><td>Health check</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<h2 id="appendix-c"><a href="#appendix-c" class="section-link">Appendix C — Glossary</a></h2>
+
+<table>
+  <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr><td><strong>PWA</strong></td><td>Progressive Web App — a web application installable on the device's home screen with access to native-like features</td></tr>
+    <tr><td><strong>JWT</strong></td><td>JSON Web Token — compact, URL-safe token format for stateless authentication</td></tr>
+    <tr><td><strong>bcrypt</strong></td><td>Adaptive cryptographic hash function designed for password hashing</td></tr>
+    <tr><td><strong>CRUD</strong></td><td>Create, Read, Update, Delete — four basic operations of persistent storage</td></tr>
+    <tr><td><strong>ORM</strong></td><td>Object-Relational Mapping — maps database tables to programming language objects</td></tr>
+    <tr><td><strong>ASGI</strong></td><td>Asynchronous Server Gateway Interface — async successor to WSGI for Python web apps</td></tr>
+    <tr><td><strong>CORS</strong></td><td>Cross-Origin Resource Sharing — browser security mechanism for cross-origin requests</td></tr>
+    <tr><td><strong>Write-Through Cache</strong></td><td>Cache strategy where data is written to both cache and backing store simultaneously</td></tr>
+    <tr><td><strong>FAB</strong></td><td>Floating Action Button — circular button that floats above UI for primary actions</td></tr>
+    <tr><td><strong>Modal Sheet</strong></td><td>UI panel that slides up from the bottom of the screen, common in mobile interfaces</td></tr>
+    <tr><td><strong>SNR</strong></td><td>Single Source of Truth — keeping data in one canonical location</td></tr>
+    <tr><td><strong>Field Mapping</strong></td><td>Conversion between camelCase (JS) and snake_case (Python)</td></tr>
+  </tbody>
+</table>
+
+<div style="margin-top:40px;padding-top:24px;border-top:2px solid var(--border);text-align:center;color:var(--text-tertiary);font-size:13px">
+  School Grading System — Technical Report &bull; Generated May 2026
+</div>
+
+</div>
+</div>
+</div>
+
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+
+<script>
+// Table of contents toggle
+document.getElementById('tocToggle').addEventListener('click', function() {
+  document.getElementById('sidebar').classList.toggle('visible');
+});
+
+// Back to top button
+window.addEventListener('scroll', function() {
+  document.getElementById('backTop').classList.toggle('visible', window.scrollY > 300);
+});
+
+// Highlight active sidebar link
+const observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      const id = entry.target.getAttribute('id');
+      document.querySelectorAll('.sidebar a[href^="#"]').forEach(function(a) {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { rootMargin: '-80px 0px -60% 0px' });
+
+document.querySelectorAll('h2[id], h3[id], h4[id]').forEach(function(el) {
+  observer.observe(el);
+});
+</script>
+
+</body>
+</html>

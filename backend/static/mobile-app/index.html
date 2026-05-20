@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="apple-mobile-web-app-title" content="Grading">
+  <title>Grading System</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%232563eb'/%3E%3Ctext x='50%25' y='55%25' dominant-baseline='central' text-anchor='middle' fill='white' font-size='280' font-weight='800' font-family='sans-serif'%3EG%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="authPage" class="auth-page" style="display:none">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-dot" style="width:48px;height:48px;border-radius:12px;margin:0 auto 14px;background:linear-gradient(135deg,var(--primary),var(--secondary));display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800">SG</div>
+        <h1 style="margin:0 0 6px;font-size:22px;color:var(--ink)">School Grading System</h1>
+        <p style="margin:0;font-size:14px;color:var(--text-secondary)">Sign in to your teacher workspace</p>
+      </div>
+
+      <form id="loginForm" class="auth-form">
+        <div class="auth-toggle">
+          <button type="button" id="authToggleLogin" class="auth-toggle-btn active">Sign In</button>
+          <button type="button" id="authToggleRegister" class="auth-toggle-btn">Register</button>
+        </div>
+
+        <div id="authLoginFields">
+          <div class="form-group">
+            <label>Username</label>
+            <input id="loginUsername" type="text" placeholder="teacher1" autocomplete="username" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" required>
+          </div>
+          <button class="btn btn-primary auth-submit" type="submit" style="width:100%">Sign In</button>
+        </div>
+
+        <div id="authRegisterFields" style="display:none">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input id="registerName" type="text" placeholder="Jane Smith" autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input id="registerUsername" type="text" placeholder="janesmith" autocomplete="username" required>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input id="registerEmail" type="email" placeholder="jane@example.com" autocomplete="email" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input id="registerPassword" type="password" placeholder="••••••••" autocomplete="new-password" required>
+          </div>
+          <button class="btn btn-primary auth-submit" type="submit" style="width:100%">Create Account</button>
+        </div>
+
+        <p id="authError" class="auth-error" style="display:none"></p>
+      </form>
+
+      <div class="auth-server-config" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="form-group">
+          <label>Server URL</label>
+          <input id="authServerUrl" type="text" value="http://localhost:8000" placeholder="http://localhost:8000">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="appShell">
+    <header id="appHeader">
+      <div class="header-left">
+        <span class="brand-dot"></span>
+        <h1 id="headerTitle">Dashboard</h1>
+      </div>
+      <button id="moreActionsBtn" class="icon-btn" aria-label="More actions">•••</button>
+    </header>
+
+    <main id="appContent">
+      <section id="page-dashboard" class="page active" data-page="dashboard"></section>
+      <section id="page-students" class="page" data-page="students"></section>
+      <section id="page-courses" class="page" data-page="courses"></section>
+      <section id="page-grades" class="page" data-page="grades"></section>
+      <section id="page-more" class="page" data-page="more"></section>
+    </main>
+
+    <nav id="bottomNav" role="tablist">
+      <button class="tab-btn active" data-tab="dashboard" role="tab" aria-selected="true">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="tab-btn" data-tab="students" role="tab" aria-selected="false">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Students</span>
+      </button>
+      <button class="tab-btn" data-tab="courses" role="tab" aria-selected="false">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <span>Courses</span>
+      </button>
+      <button class="tab-btn" data-tab="grades" role="tab" aria-selected="false">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Grades</span>
+      </button>
+      <button class="tab-btn" data-tab="more" role="tab" aria-selected="false">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        <span>More</span>
+      </button>
+    </nav>
+  </div>
+
+  <div id="modalOverlay" class="modal-hidden">
+    <div class="modal-scrim"></div>
+    <div class="modal-sheet" id="modalSheet" role="dialog" aria-modal="true">
+      <div class="modal-grabber"><span></span></div>
+      <div class="modal-header">
+        <h2 id="modalTitle"></h2>
+        <button class="modal-close-btn icon-btn" id="modalCloseBtn" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="fab-container" id="fabContainer">
+    <button class="fab" id="fabBtn" aria-label="Add">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="../api.js"></script>
+  <script src="../ai-chat.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
